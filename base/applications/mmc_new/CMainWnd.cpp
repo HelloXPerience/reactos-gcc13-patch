@@ -9,13 +9,6 @@
 
 #include "precomp.h"
 
-#define BTN_UNDO            0
-#define BTN_REDO            1
-#define BTN_UP              2
-#define BTN_SCOPE_PANE      3
-#define BTN_EXPORT_LIST     4
-#define BTN_ACTIONS_PANE    5
-
 static TBBUTTON TbButtons[] =
 {
     { BTN_UNDO, IDM_TB_UNDO, 0, BTNS_BUTTON, {0}, 0, 0 },
@@ -26,14 +19,15 @@ static TBBUTTON TbButtons[] =
     { 4, IDC_STATIC, TBSTATE_ENABLED, BTNS_SEP, {0}, 0, 0 },
 //    { BTN_EXPORT_LIST, IDM_TB_EXPORT_LIST, TBSTATE_ENABLED, BTNS_BUTTON, {0}, 0, 0 },
     { 4, IDC_STATIC, TBSTATE_ENABLED, BTNS_SEP, {0}, 0, 0 },
+//    { BTN_HELP, IDM_TB_HELP, TBSTATE_ENABLED, BTNS_BUTTON, {0}, 0, 0 },
     { BTN_ACTIONS_PANE, IDM_TB_ACTIONS_PANE, TBSTATE_ENABLED, BTNS_CHECK, {0}, 0, 0 }
 };
 
 CMainWnd::CMainWnd()
     : m_NewConsoleCount(0)
     , m_nConsoleCount(0)
-    , m_AppAuthorMode(false)
-    , m_ToolBarVisible(true)
+    , m_ConsoleMode(AuthorMode)
+    , m_bToolBarVisible(true)
     , m_NextViewId(1)
 {
     m_FrameThunk.Init(XDefFrameProc, this);
@@ -78,11 +72,12 @@ CMainWnd::OnCreate(UINT nMessage, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     LPCTSTR lpFileName = (LPCTSTR)(((LPCREATESTRUCT)lParam)->lpCreateParams);
     RECT rect;
 
-    m_AppAuthorMode = TRUE;
+    m_bStandardMenusVisible = TRUE;
     UpdateMenu();
     SetWindowTextW(L"ReactOS Management Console");
 
     /* Create and initialize the Toolbar */
+    m_bToolBarVisible = TRUE;
     m_ToolBar.Create(m_hWnd,
                      WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | TBSTYLE_FLAT,
                      0);
@@ -100,7 +95,7 @@ CMainWnd::OnCreate(UINT nMessage, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     rect.top += m_iToolBarHeight;
 
     /* Create the MDI client window */
-    ccs.hWindowMenu = GetSubMenu(m_hMenuConsoleLarge, 1);
+    ccs.hWindowMenu = GetSubMenu(m_hMenuConsoleLarge, 4);
     ccs.idFirstChild = IDM_MDI_FIRSTCHILD;
 
     m_MDIClient.Create(L"MDICLIENT", m_hWnd, rect, (LPCTSTR)NULL, WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL, WS_EX_CLIENTEDGE, 0U, &ccs);
@@ -237,9 +232,32 @@ CMainWnd::OnFileAdd(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 }
 
 LRESULT
+CMainWnd::OnFileOptions(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+    CConsoleWnd* child = GetActiveChildInfo();
+    if (child == NULL)
+        return 0;
+    COptionsDialog dlg(this, child);
+    dlg.DoModal(m_hWnd, (LPARAM)child);
+    return 0;
+}
+
+LRESULT
 CMainWnd::OnFileExit(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
     PostMessage(WM_CLOSE, 0, 0);
+    return 0;
+}
+
+LRESULT
+CMainWnd::OnViewCustomize(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+    CConsoleWnd* child = GetActiveChildInfo();
+    if (child == NULL)
+        return 0;
+
+    CCustomizeDialog dlg2(this, child);
+    dlg2.DoModal(m_hWnd, (LPARAM)child);
     return 0;
 }
 
@@ -282,6 +300,28 @@ CMainWnd::OnHelpAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 }
 
 LRESULT
+CMainWnd::OnToolbarScopePane(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+    CConsoleWnd* child = GetActiveChildInfo();
+    if (child == NULL)
+        return 0;
+
+    child->SetTreeViewVisible(!child->IsTreeViewVisible());
+    return 0;
+}
+
+LRESULT
+CMainWnd::OnToolbarActionsPane(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
+{
+    CConsoleWnd* child = GetActiveChildInfo();
+    if (child == NULL)
+        return 0;
+
+    child->SetActionsPaneVisible(!child->IsActionsPaneVisible());
+    return 0;
+}
+
+LRESULT
 CMainWnd::OnMDIForward(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
 {
     HWND hChild = (HWND)m_MDIClient.SendMessage(WM_MDIGETACTIVE, 0, 0);
@@ -292,6 +332,33 @@ CMainWnd::OnMDIForward(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled)
         ::SendMessage(hChild, WM_COMMAND, wParam, lParam);
     }
     return 0;
+}
+
+BOOL
+CMainWnd::IsToolBarVisible()
+{
+    return m_bToolBarVisible;
+}
+
+VOID
+CMainWnd::SetToolBarVisible(BOOL bVisible)
+{
+    m_bToolBarVisible = bVisible;
+    UpdateLayout();
+}
+
+BOOL
+CMainWnd::AreStandardMenusVisible()
+{
+    return m_bStandardMenusVisible;
+}
+
+VOID
+CMainWnd::SetStandardMenusVisible(BOOL bVisible)
+{
+    m_bStandardMenusVisible = bVisible;
+//        m_MainWnd->UpdateMenu(m_bStandardMenusVisible);
+//    UpdateLayout();
 }
 
 LRESULT
@@ -386,7 +453,7 @@ CMainWnd::UpdateLayout()
     GetClientRect(&rcClient);
 
     int nToolBarFlags = SWP_NOZORDER;
-    if (m_ToolBarVisible)
+    if (m_bToolBarVisible)
     {
         rcClient.top += m_iToolBarHeight;
         rcClient.bottom -= m_iToolBarHeight;
@@ -403,4 +470,16 @@ CMainWnd::UpdateLayout()
     m_ToolBar.SetWindowPos(NULL, rcToolBar.left, rcToolBar.top, rcToolBar.right, rcToolBar.bottom, nToolBarFlags);
 
     m_MDIClient.SetWindowPos(NULL, rcClient.left, rcClient.top, rcClient.right, rcClient.bottom, SWP_NOZORDER);
+}
+
+CONSOLE_MODE
+CMainWnd::GetConsoleMode()
+{
+    return m_ConsoleMode;
+}
+
+void
+CMainWnd::SetConsoleMode(CONSOLE_MODE ConsoleMode)
+{
+    m_ConsoleMode = ConsoleMode;
 }
