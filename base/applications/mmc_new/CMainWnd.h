@@ -28,7 +28,9 @@ private:
     CAtlString m_ConsoleTitle;
     HMENU m_hMenuConsoleSmall;
     HMENU m_hMenuConsoleLarge;
-    CONSOLE_MODE m_ConsoleMode;
+    DOCUMENT_MODE m_DocumentMode;
+    BOOL m_LogicalReadOnly;
+    BOOL m_PreventViewCustomization;
 
     CToolbar<DWORD_PTR> m_ToolBar;
     int m_iToolBarHeight;
@@ -70,7 +72,7 @@ public:
         COMMAND_ID_HANDLER(IDM_WINDOWS_TILE, OnWindowsTile)
         COMMAND_ID_HANDLER(IDM_WINDOWS_ARRANGE, OnWindowsArrange)
 
-        COMMAND_ID_HANDLER(IDM_HELP_ABOUT, OnHelpAbout)
+        COMMAND_ID_HANDLER(IDM_HELP_ABOUT_MMC, OnHelpAboutMMC)
 
         COMMAND_ID_HANDLER(IDM_TB_SCOPE_PANE, OnToolbarScopePane)
         COMMAND_ID_HANDLER(IDM_TB_ACTIONS_PANE, OnToolbarActionsPane)
@@ -180,7 +182,7 @@ public:
     LRESULT OnWindowsCascade(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnWindowsTile(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnWindowsArrange(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
-    LRESULT OnHelpAbout(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+    LRESULT OnHelpAboutMMC(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnToolbarScopePane(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnToolbarActionsPane(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnMDIForward(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
@@ -204,7 +206,11 @@ public:
     HIMAGELIST SnapinImageList();
     int RegisterView(CConsoleWnd *pView);
     void UnregisterView(CConsoleWnd *pView);
-    CONSOLE_MODE GetConsoleMode();
-    void SetConsoleMode(CONSOLE_MODE ConsoleMode);
+    DOCUMENT_MODE GetDocumentMode();
+    void SetDocumentMode(DOCUMENT_MODE DocumentMode);
+    BOOL GetLogicalReadOnly();
+    void SetLogicalReadOnly(BOOL LogicalReadOnly);
+    BOOL GetPreventViewCustomization();
+    void SetPreventViewCustomization(BOOL PreventCustomization);
 };
 
