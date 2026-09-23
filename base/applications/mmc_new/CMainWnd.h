@@ -18,13 +18,15 @@
 #define BTN_HELP            5
 #define BTN_ACTIONS_PANE    6
 
+#define MAX_RECENT_FILES    4
+
 class CMainWnd :
     public CWindowImpl<CMainWnd>
 {
 private:
     CWndProcThunk m_FrameThunk;
 
-    int m_nConsoleNumber;
+    int m_ConsoleNumber;
     CAtlString m_ConsoleTitle;
     HMENU m_hMenuConsoleSmall;
     HMENU m_hMenuConsoleLarge;
@@ -46,8 +48,11 @@ private:
 
     CSnapin *m_RootNode;
 
+    CAtlList<CRecentFileEntry *> m_RecentFilesList;
+
 public:
     CWindow m_MDIClient;
+    CAtlString m_Filename;
 
 public:
 
@@ -59,6 +64,7 @@ public:
         MESSAGE_HANDLER(WM_USER_CLOSE_CHILD, OnCloseChild)
 
         COMMAND_ID_HANDLER(IDM_FILE_NEW, OnFileNew)
+        COMMAND_ID_HANDLER(IDM_FILE_OPEN, OnFileOpen)
         COMMAND_ID_HANDLER(IDM_FILE_SAVE, OnFileSave)
         COMMAND_ID_HANDLER(IDM_FILE_SAVEAS, OnFileSaveAs)
         COMMAND_ID_HANDLER(IDM_FILE_ADD, OnFileAdd)
@@ -122,6 +128,7 @@ private:
             SetMenu(m_hMenuConsoleSmall);
         else
             SetMenu(m_hMenuConsoleLarge);
+        UpdateRecentFilesMenu();
     }
 
     void UpdateTitle()
@@ -146,7 +153,7 @@ private:
 
     void CreateNewConsoleTitle(CAtlString& str)
     {
-        DWORD_PTR args[1] = { (DWORD_PTR)(m_nConsoleNumber) };
+        DWORD_PTR args[1] = { (DWORD_PTR)(m_ConsoleNumber) };
         str.LoadString(IDS_CONSOLETITLE);
 
         LPTSTR lpTarget = NULL;
@@ -172,6 +179,7 @@ public:
     LRESULT OnClose(UINT nMessage, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
     LRESULT OnFileNew(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
+    LRESULT OnFileOpen(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFileSave(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFileSaveAs(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
     LRESULT OnFileAdd(WORD wNotifyCode, WORD wID, HWND hWndCtl, BOOL& bHandled);
@@ -191,6 +199,14 @@ private:
     LRESULT LoadSnapinCache();
     void UpdateLayout();
     void UpdateViews();
+
+    VOID UpdateRecentFilesMenu();
+    VOID LoadRecentFiles();
+    VOID AddToRecentFiles(CAtlString &FileName);
+    DWORD CreateNewFilename(PWSTR pBuffer, DWORD dwSize, DWORD Number);
+    LPWSTR ProgramModeToString();
+    LRESULT SaveMscFile(CAtlString &FileName);
+    LRESULT LoadMscFile(CAtlString &FileName);
 
 public:
     CAtlString *GetConsoleTitle();
